@@ -42,19 +42,24 @@ class Scrape
                  
                 echo $img_url. "\n";
 
-                $productCrawler->filterXPath('//div[@class="my-8 block text-center text-lg"]')->each(function(Crawler $prices) {
+                $productCrawler->filter(".my-8 block text-center text-lg")->each(function(Crawler $prices) {
                      
                     // $product_price = null;
                     foreach ($prices as $price) {
 
                         $priceCrawler = new Crawler($price);
 
-                        $price_element = $priceCrawler->getNode(0);
-                       
-                            var_dump($price). "\n";
-                        //}
+                        $priceCrawler->each(function(Crawler $price_elements){
+                            
+                            foreach($price_elements as $price_element){
+                                $price_element->parentNode->removeChild($price_element);
+                            }                             
+                        });
                     }
                 });
+
+                $price_content = $productCrawler->filter('div')->text();
+                echo $price_content. "\n";
                 
                                  
                 $productCrawler->filter('.flex')->children()->each(function(Crawler $flex) {
