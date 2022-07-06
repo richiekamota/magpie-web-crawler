@@ -3,6 +3,7 @@
 namespace App;
 
 require 'vendor/autoload.php';
+use Symfony\Component\DomCrawler\Crawler;
 
 class Scrape
 {
@@ -13,7 +14,59 @@ class Scrape
         $document = ScrapeHelper::fetchDocument('https://www.magpiehq.com/developer-challenge/smartphones');
         
         // Get the number of pages so that we know how many pages we have to iterate through
-        $numberOfPages = $document->filter('#pages .px.6')->count();
+        $pages = $document->filter('#pages .px-6')->count();
+
+        //echo $pages;
+
+        // https://www.magpiehq.com/developer-challenge/smartphones/?page={pagenumber}
+        for ($i=1; $i <= $pages; $i++) {
+            //echo "https://www.magpiehq.com/developer-challenge/smartphones/?page={$i}" . "\n";
+
+            $document = ScrapeHelper::fetchDocument("https://www.magpiehq.com/developer-challenge/smartphones/?page={$i}");
+
+            $products = $document->filter('.product');
+
+            foreach ($products as $product) {
+
+                $productCrawler = new Crawler($product);
+
+                $productCrawler->filter('.text-blue-600')->children()->each(function(Crawler $span) {   
+
+                    $product_name = $span->filter('span')->text();
+
+                    echo $product_name. "\n";
+        
+                });
+
+                $img_url = $productCrawler->filter('img')->attr('src');   
+                 
+                echo $img_url. "\n";
+
+                $productCrawler->filterXPath('//div[@class="my-8 block text-center text-lg"]')->each(function(Crawler $prices) {
+                     
+                    // $product_price = null;
+                    foreach ($prices as $price) {
+
+                        $priceCrawler = new Crawler($price);
+
+                        $price_element = $priceCrawler->getNode(0);
+                       
+                            var_dump($price). "\n";
+                        //}
+                    }
+                });
+                
+                                 
+                $productCrawler->filter('.flex')->children()->each(function(Crawler $flex) {
+                   
+                    $flex->filter('.px-2')->children()->each(function(Crawler $span) {
+                       $data_colour = $span->filter('span')->eq(0)->attr('data-colour');
+                       echo $data_colour. "\n";        
+                    });
+                });  
+            }
+           
+        }
 
         // https://www.magpiehq.com/developer-challenge/smartphones/?page={pageNumber}
 
@@ -28,7 +81,7 @@ class Scrape
         // IsAvailable value dependent on the availabilityText
                
 
-        file_put_contents('output.json', json_encode($this->products));
+        file_put_contents('output.json', json_encode($pages));
     }
 }
 
