@@ -1,7 +1,6 @@
 <?php
 
 namespace App;
-
 require 'vendor/autoload.php';
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -16,10 +15,10 @@ class Scrape
         // Get the number of pages so that we know how many pages we have to iterate through
         $pages = $document->filter('#pages .px-6')->count();
 
-        //echo $pages;
-
         // https://www.magpiehq.com/developer-challenge/smartphones/?page={pagenumber}
+        
         for ($i=1; $i <= $pages; $i++) {
+           
             //echo "https://www.magpiehq.com/developer-challenge/smartphones/?page={$i}" . "\n";
 
             $document = ScrapeHelper::fetchDocument("https://www.magpiehq.com/developer-challenge/smartphones/?page={$i}");
@@ -30,64 +29,96 @@ class Scrape
 
                 $productCrawler = new Crawler($product);
 
-                $productCrawler->filter('.text-blue-600')->children()->each(function(Crawler $span) {   
+                $title = $productCrawler->filter(".text-blue-600")->text();
 
-                    $product_name = $span->filter('span')->text();
+                $this->products['title'] = $title;
 
-                    echo $product_name. "\n";
-        
+                echo $title. "\n";
+
+                $productCrawler->filter('.text-blue-600')->children()->each(function(Crawler $spans) { 
+
+                    $capacity = $spans->filter('span')->text();
+
+                    $this->products['capacityMB'] = intval($capacity)*1000;                    
+
                 });
 
-                $img_url = $productCrawler->filter('img')->attr('src');   
-                 
-                echo $img_url. "\n";
-
-                $productCrawler->filter(".my-8 block text-center text-lg")->each(function(Crawler $prices) {
-                     
-                    // $product_price = null;
-                    foreach ($prices as $price) {
-
-                        $priceCrawler = new Crawler($price);
-
-                        $priceCrawler->each(function(Crawler $price_elements){
-                            
-                            foreach($price_elements as $price_element){
-                                $price_element->parentNode->removeChild($price_element);
-                            }                             
-                        });
-                    }
-                });
-
-                $price_content = $productCrawler->filter('div')->text();
-                echo $price_content. "\n";
-                
-                                 
-                $productCrawler->filter('.flex')->children()->each(function(Crawler $flex) {
+              
+                $productCrawler->children(".bg-white")->each(function(Crawler $price_avails) {   
                    
+                    $img_url = $price_avails->filter('img')->attr('src');
+                 
+                    echo $img_url. "\n";
+
+                    $this->products['imgUrl'] = str_replace("..","https://www.magpiehq.com/developer-challenge/smartphones",$img_url); 
+
+                    $price = $price_avails->children('div')->filter(".my-8")->text();
+
+                    echo $price. "\n";
+
+                    $this->products['price']= preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $price);
+
+                    $price_avails->children('div')->filter(".my-4")->text();
+
+                    foreach($price_avails as $price_avail){
+
+                        $priceCrawler = new Crawler($price_avail);
+
+                        $price_avail = $priceCrawler->children('div')->eq(2)->text();
+
+                        echo $price_avail. "\n";
+
+                        $this->products['availabilityText'] = $price_avail;
+                        
+                        $this->products['isAvailable'] = (preg_match("/^Availability: In Stock$/", $price_avail)) ? true:false;
+
+                    }                   
+
+                    $price_avails->filter('div')->each(function(Crawler $shipping) {
+                        
+                        echo $shipping->text(). "\n";
+
+                        $this->products['shippingText'] = $shipping->text();
+                        
+                        $this->products['shippingDate'] = $this->standard_date_format($shipping->text());
+                    
+                    });
+                });
+
+                $productCrawler->filter('.flex')->children()->each(function(Crawler $flex) {
+                
                     $flex->filter('.px-2')->children()->each(function(Crawler $span) {
-                       $data_colour = $span->filter('span')->eq(0)->attr('data-colour');
-                       echo $data_colour. "\n";        
+
+                    $data_colour = $span->filter('span')->eq(0)->attr('data-colour');
+
+                    $this->products['colour'] = $data_colour;
+
+                    echo $data_colour. "\n";        
                     });
                 });  
-            }
            
+            }
         }
-
-        // https://www.magpiehq.com/developer-challenge/smartphones/?page={pageNumber}
-
-        // On each page we loop through each div with class product px-4 w-full md:w-1/2 mx-auto max-w-md mb-12
-
-        // On each page we loop through each card div with class bg-white p-4 rounded-md
-
-        // We must then de-dupe after the first parse
-
-        // .........
-        // remember capacity 1GB=1000MB
-        // IsAvailable value dependent on the availabilityText
+        // We must not forget to de-dupe
                
 
-        file_put_contents('output.json', json_encode($pages));
+        file_put_contents('output.json', json_encode($this->products));
     }
+
+    public function standard_date_format($str) {
+
+        preg_match_all('/(\d{1,2}) (\w+) (\d{4})/', $str, $matches);
+
+        $dates  = array_map("strtotime", $matches[0]);
+
+        $result = array_map(function($v) {return date("Y-m-d", $v); }, $dates);
+
+        //$value = array_key_exists(0, $result) ? $result[0] : '';
+            return date("Y-m-d",strtotime($result[0]));
+                 
+        
+    }
+    
 }
 
 $scrape = new Scrape();
