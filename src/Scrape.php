@@ -1,7 +1,11 @@
 <?php
 
 namespace App;
+
+use App\Product;
+
 require 'vendor/autoload.php';
+
 use Symfony\Component\DomCrawler\Crawler;
 
 class Scrape
@@ -26,7 +30,6 @@ class Scrape
             $document = ScrapeHelper::fetchDocument("https://www.magpiehq.com/developer-challenge/smartphones/?page={$i}");
 
             $products = $document->filter('.product');
-
         
 
             foreach ($products as $product) {
@@ -35,105 +38,40 @@ class Scrape
 
                 $options = $productCrawler->filter('.px-2')->count();
 
-                for ($o=1; $o <= $options; $o++) {
+                for ($o=1; $o<=$options;$o++) {
 
-                    // $productCrawler = new Crawler($option);
+                    $product = new Product();
 
                     $title = $productCrawler->filter(".text-blue-600")->text();
-    
-                    // $this->products['title'] = $title;
-    
-                    $myproducts[] = $title;
-                }
-
-
-
-                // echo $title. "\n";
-
-                // $productCrawler->filter('.text-blue-600')->children()->each(function(Crawler $spans) { 
-
-                //     $capacity = $spans->filter('span')->text();
-
-                //     // $this->products['capacityMB'] = intval($capacity)*1000;                    
-
-                // });
-
-              
-                // $productCrawler->children(".bg-white")->each(function(Crawler $price_avails) {   
-                   
-                //     $img_url = $price_avails->filter('img')->attr('src');
-                 
-                //     echo $img_url. "\n";
-
-                //     // $this->products['imgUrl'] = str_replace("..","https://www.magpiehq.com/developer-challenge/smartphones",$img_url); 
-
-                //     $price = $price_avails->children('div')->filter(".my-8")->text();
-
-                //     echo $price. "\n";
-
-                //     //$this->products['price']= preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $price);
-
-                //     $price_avails->children('div')->filter(".my-4")->text();
-
-                //     // foreach($price_avails as $price_avail){
-
-                //     //     $priceCrawler = new Crawler($price_avail);
-
-                //     //     $price_avail = $priceCrawler->children('div')->eq(2)->text();
-
-                //     //     echo $price_avail. "\n";
-
-                //     //     //$this->products['availabilityText'] = $price_avail;
-                        
-                //     //     $this->products['isAvailable'] = (preg_match("/^Availability: In Stock$/", $price_avail)) ? true:false;
-
-                //     // }                   
-
-                //     $price_avails->filter('div')->each(function(Crawler $shipping) {
-                        
-                //         echo $shipping->text(). "\n";
-
-                //         //$this->products['shippingText'] = $shipping->text();
-                        
-                //         //$this->products['shippingDate'] = $this->standard_date_format($shipping->text());
-                    
-                //     });
-                // });
-
-                // $productCrawler->filter('.flex')->children()->each(function(Crawler $flex) {
-                
-                //     $flex->filter('.px-2')->children()->each(function(Crawler $span) {
-
-                //     $data_colour = $span->filter('span')->eq(0)->attr('data-colour');
-
-                //     //$this->products['colour'] = $data_colour;
-
-                //     echo $data_colour. "\n";        
-                //     });
-                // });  
-           
+                    $cur_price = $productCrawler->filter(".text-lg")->text();  
+                    $price = floatval(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $cur_price));                
+                    $capacity = $productCrawler->filter(".product-capacity")->text();
+                    $capacityMB = intval($capacity)*1000;
+                    $colour = $productCrawler->filter('.px-2')->filter('span')->eq(0)->attr('data-colour');
+                    $img_url = $productCrawler->filter('img')->attr('src');
+                    $imageUrl = str_replace("..","https://www.magpiehq.com/developer-challenge/smartphones",$img_url);
+                    $availabilityText = $productCrawler->filter('.bg-white')->children('div')->eq(2)->text();
+                    $isAvailable = (preg_match("/Availability: In Stock/", $availabilityText)) ? true:false;
+                    $shippingText = $productCrawler->filter('.bg-white')->children('div')->last()->text();
+                    $shippingDate = (!preg_match("/Unavailable for delivery/", $shippingText) || (!preg_match("/Free Shipping/", $shippingText))) ? $product->standard_date_format($shippingText) : '';
+                     
+                    $product->title = $title; 
+                    $product->price = $price; 
+                    $product->capacityMB = $capacityMB;
+                    $product->colour = $colour; 
+                    $product->imageUrl = $imageUrl;
+                    $product->availabilityText = $availabilityText;
+                    $product->isAvailable = $isAvailable;
+                    $product->shippingText = $shippingText;
+                    $product->shippingDate = $shippingDate;
+                    $myproducts[] = $product;            
+                }           
+                echo count($myproducts);
             }
         }
         // We must not forget to de-dupe
-               
-
-        file_put_contents('output.json', json_encode($myproducts));
-    }
-
-    public function standard_date_format($str) {
-
-        preg_match_all('/(\d{1,2}) (\w+) (\d{4})/', $str, $matches);
-
-        $dates  = array_map("strtotime", $matches[0]);
-
-        $result = array_map(function($v) {return date("Y-m-d", $v); }, $dates);
-
-        //$value = array_key_exists(0, $result) ? $result[0] : '';
-            return date("Y-m-d",strtotime($result[0]));
-                 
-        
-    }
-    
+         file_put_contents('output.json', json_encode($myproducts));
+    }    
 }
 
 $scrape = new Scrape();
