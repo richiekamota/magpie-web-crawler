@@ -79,6 +79,7 @@ class Scrape
                 }          
             }
         }
+        $myproducts = $product->remove_duplicates($myproducts); 
         // We must not forget to de-dupe
          file_put_contents('output.json', json_encode($myproducts));
     }    
