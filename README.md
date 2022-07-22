@@ -1,8 +1,8 @@
-## Magpie PHP Developer Challenge
+## PHP based Webcrawler
 
-Your task is to gather data about the products listed on https://www.magpiehq.com/developer-challenge/smartphones
+This code is for gathering data about the products listed on https://www.magpiehq.com/developer-challenge/smartphones
 
-The final output of your script should be an array of objects similar to the example below:
+The final output of this script is an array of objects similar to the one below:
 
 ```
 {
@@ -18,29 +18,11 @@ The final output of your script should be an array of objects similar to the exa
 }
 
 ```
-
-You should use this repository as a starter template.
-
-You can refer to the [Symfony DomCrawler](https://symfony.com/doc/current/components/dom_crawler.html) documentation for a nice way to capture the data you need.
-
-Hint: the `Symfony\Component\DomCrawler\Crawler` class,  and its `filter()` method, are your friends.
-
-You can share your code with us by email, or through a service like GitHub.
-
-Please also send us your `output.json`.
-
-### Notes
-* Please de-dupe your data. We don’t want to see the same product twice, even if it’s listed twice on the website.
-* Make sure that all product variants are captured. Each colour variant should be treated as a separate product.
-* Device capacity should be captured in MB for all products (not GB)
-* The final output should be an array of products, outputted to output.json
-* Don’t forget the pagination!
-* You will be assessed both on successfully generating the correct output data in output.json, and also on the quality of your code.
-
-### Useful Resources
-* https://symfony.com/doc/current/components/dom_crawler.html
-* https://symfony.com/doc/current/components/css_selector.html
-* https://github.com/jupeter/clean-code-php
+### Features
+* There is de-dupe functionality of data. This is to prevent the same product from appearing twice.
+* All product variants are captured. Each colour is treated as a separate product.
+* Device capacity is captured in MB for all products (not GB)
+* The final output is an array of products, outputted to output.json
 
 ### Requirements
 
@@ -50,8 +32,10 @@ Please also send us your `output.json`.
 ### Setup
 
 ```
-git clone git@github.com:stickeeuk/magpie-scrape-challenge.git
-cd magpie-scrape-challenge
+mkdir magpie-scrape
+cd magpie-scrape
+git clone https://github.com/richiekamota/magpie-web-crawler/tree/master .
+
 composer install
 ```
 
